@@ -321,9 +321,9 @@ void Widget::contextMenu_called(QPoint point){
 
 
 void Widget::on_openAction_clicked(QModelIndex index){
-    if(!fileSystemModel->isDir(sort->mapFromSource(index))){
+    if(!fileSystemModel->isDir(sort->mapToSource(index))){
         QDesktopServices desktop;
-        desktop.openUrl(QUrl::fromLocalFile(fileSystemModel->filePath(sort->mapFromSource(index))));
+        desktop.openUrl(QUrl::fromLocalFile(fileSystemModel->filePath(sort->mapToSource(index))));
     }
 }
 
