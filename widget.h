@@ -18,6 +18,9 @@
 #include <QHeaderView>
 #include <QApplication>
 #include <QSortFilterProxyModel>
+#include <QLibraryInfo>
+#include <QStringList>
+#include <QString>
 
 #include <QModelIndex>
 
@@ -80,7 +83,7 @@ class Widget : public QWidget
     QAction* labelAction;
     QAction* greyColorAction;
     QAction* lightColorAction;
-    //QTranslator* translator;
+    QTranslator* translator;
     QFileSystemModel* fileSystemModel;
     QTreeView* treeView;
 
@@ -90,6 +93,8 @@ class Widget : public QWidget
     QString movePath;
     QModelIndex oldFile;
     bool cutFlag;
+    bool isDir;
+    QStringList innerFolders;
 
 public:
     Widget(QWidget *parent = nullptr);
