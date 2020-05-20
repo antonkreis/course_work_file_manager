@@ -12,13 +12,14 @@ Widget::Widget(QWidget *parent)
     treeView = new QTreeView(this);
     fileSystemModel->setRootPath(QDir::currentPath());
 
-
+    translator = new QTranslator(this);
     QIcon newfolder_icon(":/rsc/newfolder_ico.ico");
     folderAction = new QAction("Папка");
     folderAction->setIcon(newfolder_icon);
 
     sort = new QSortFilterProxyModel(this);
     sort->setSourceModel(fileSystemModel);
+    //sort->setHeaderData(0, Qt::Horizontal, "aa");
 
 
 
@@ -28,6 +29,7 @@ Widget::Widget(QWidget *parent)
 
     //treeView->setModel(fileSystemModel);
     treeView->setModel(sort);
+
     //fileSystemModel->setHeaderData(0, Qt::Horizontal, tr("Название"));
     contextMenu = new QMenu(this);
 
@@ -54,7 +56,7 @@ Widget::Widget(QWidget *parent)
 
     menuBar->addMenu(fileMenu);
     menuBar->addMenu(editMenu);
-    menuBar->addMenu(viewMenu);
+    //menuBar->addMenu(viewMenu);
     menuBar->addMenu(settingsMenu);
     menuBar->addMenu(helpMenu);
 
@@ -66,7 +68,7 @@ Widget::Widget(QWidget *parent)
     QIcon info_icon(":/rsc/info_ico.ico");
 
     QIcon add_icon(":/rsc/create_ico.ico");
-    QIcon undo_icon(":/rsc/undo_ico.ico");
+    //QIcon undo_icon(":/rsc/undo_ico.ico");
     QIcon copy_icon(":/rsc/copy_ico.ico");
     QIcon paste_icon(":/rsc/paste_ico.ico");
     QIcon cut_icon(":/rsc/cut_ico.ico");
@@ -83,25 +85,25 @@ Widget::Widget(QWidget *parent)
     QIcon doc_icon(":/rsc/doc_ico.ico");
     QIcon properties_icon(":/rsc/properties_ico.ico");
 
-    translateMenu = new QMenu(QApplication::translate("Widget","Язык",0));
+    translateMenu = new QMenu(tr("Язык"));
     belarussianAction = new QAction("Беларуская");
     russianAction = new QAction("Русский");
     englishAction = new QAction("English");
     germanAction = new QAction("German");
 
-    openAction = new QAction("Открыть");
+    openAction = new QAction(tr("Открыть"));
     openAction->setIcon(open_icon);
 
-    propertiesAction = new QAction("Свойства");
+    propertiesAction = new QAction(tr("Свойства"));
     propertiesAction->setIcon(properties_icon);
 
 
-    createMenu = new QMenu("Создать");
+    createMenu = new QMenu(tr("Создать"));
     createMenu->setIcon(add_icon);
 
 
     undoAction = new QAction("Отменить");
-    undoAction->setIcon(undo_icon);
+   // undoAction->setIcon(undo_icon);
     QKeySequence undoShortcut(Qt::CTRL+Qt::Key_Z);
     undoAction->setShortcut(undoShortcut);
 
@@ -110,30 +112,30 @@ Widget::Widget(QWidget *parent)
     QKeySequence copyShortcut(Qt::CTRL+Qt::Key_C);
     copyAction->setShortcut(copyShortcut);
 
-    pasteAction = new QAction("Вставить");
+    pasteAction = new QAction(tr("Вставить"));
     pasteAction->setIcon(paste_icon);
     QKeySequence pasteShortcut(Qt::CTRL+Qt::Key_V);
     pasteAction->setShortcut(pasteShortcut);
 
-    cutAction = new QAction("Вырезать");
+    cutAction = new QAction(tr("Вырезать"));
     cutAction->setIcon(cut_icon);
     QKeySequence cutShortcut(Qt::CTRL+Qt::Key_X);
     cutAction->setShortcut(cutShortcut);
 
-    renameAction = new QAction("Переименовать");
+    renameAction = new QAction(tr("Переименовать"));
     renameAction->setIcon(rename_icon);
     QKeySequence renameShortcut(Qt::Key_F2);
     renameAction->setShortcut(renameShortcut);
 
-    deleteAction = new QAction("Удалить");
+    deleteAction = new QAction(tr("Удалить"));
     deleteAction->setIcon(delete_icon);
     QKeySequence deleteShortcut(Qt::Key_Delete);
     deleteAction->setShortcut(deleteShortcut);
 
-    colorMenu = new QMenu("Цвет");
+    colorMenu = new QMenu(tr("Цвет"));
     colorMenu->setIcon(theme_icon);
 
-    aboutAction = new QAction("О программе");
+    aboutAction = new QAction(tr("О программе"));
     QKeySequence aboutShortcut(Qt::CTRL+Qt::Key_I);
     aboutAction->setIcon(info_icon);
     aboutAction->setShortcut(aboutShortcut);
@@ -141,10 +143,10 @@ Widget::Widget(QWidget *parent)
     sortAction = new QAction("Сортировать");
     sortAction->setIcon(sort_icon);
 
-    exitAction = new QAction("Выйти");
+    exitAction = new QAction(tr("Выйти"));
     exitAction->setIcon(exit_icon);
 
-    helpAction = new QAction("Справка");
+    helpAction = new QAction(tr("Справка"));
     helpAction->setIcon(help_icon);
     QKeySequence helpShortcut(Qt::Key_F1);
     helpAction->setShortcut(helpShortcut);
@@ -163,8 +165,8 @@ Widget::Widget(QWidget *parent)
     editMenu->addAction(copyAction);
     editMenu->addAction(cutAction);
     viewMenu->addAction(sortAction);
-    helpMenu->addAction(helpAction);
-    editMenu->addAction(undoAction);
+    //helpMenu->addAction(helpAction);
+    //editMenu->addAction(undoAction);
 
     translateMenu->addAction(belarussianAction);
     translateMenu->addAction(russianAction);
@@ -214,62 +216,129 @@ Widget::Widget(QWidget *parent)
     setNameWindow = new SetNameWindow(this);
     retranslation();
     cutFlag = 0;
-     treeView->setSortingEnabled(true);
+    treeView->setSortingEnabled(true);
 }
 
 void Widget::on_sortAction_clicked(int){
     treeView->setSortingEnabled(true);
-
     treeView->sortByColumn(0, Qt::AscendingOrder);
 }
 
 void Widget::on_pasteAction_clicked(){
-    if(moveName.size() != 0){
-        QFile file(fileSystemModel->filePath(treeView->currentIndex()));
-        QFile::copy(movePath, fileSystemModel->filePath(treeView->currentIndex())+ '/' + moveName);
-        if(cutFlag){
-            fileSystemModel->remove(oldFile);
+    if(!isDir){
+        if(moveName.size() != 0){
+            QFile file(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())));
+            QFile::copy(movePath, fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()))+ '/' + moveName);
         }
-        moveName.clear();
-        movePath.clear();
     }
+    else{
+        QDir dir(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()))+ moveName);
+        //QFileInfo info;
+        QString newBaseFolderPath = fileSystemModel->filePath(fileSystemModel->mkdir(sort->mapToSource(treeView->currentIndex()), moveName));
+        QString relativePath;
+        QString oldPath;
+        for(int i =0; i < moveName.size(); i++){
+            movePath.resize(movePath.size() - 1);
+        }
+        int pathLength = movePath.size();
+        foreach (QString path, innerFolders) {
+            if(path.back()!='.'){
+
+                if(QFileInfo(path).isFile()){
+                    oldPath = path;
+                    relativePath = path.remove(0, pathLength + moveName.size());
+                    QString newPath = dir.currentPath();
+                    QFile::copy(oldPath,newBaseFolderPath + relativePath);
+                }
+                else{
+                    path.remove(0, pathLength);
+                    fileSystemModel->mkdir(sort->mapToSource(treeView->currentIndex()), path);
+                }
+            }
+        }
+    }
+    if(cutFlag){
+        fileSystemModel->remove(oldFile);
+    }
+    //moveName.clear();
+    //movePath.clear();
 }
 
 void Widget::on_cutAction_clicked(){
-    QFile file(fileSystemModel->filePath(treeView->currentIndex()));
-    moveName = fileSystemModel->fileName(treeView->currentIndex());
-    movePath = fileSystemModel->filePath(treeView->currentIndex());
-    cutFlag = 1;
+    if(!fileSystemModel->isDir(sort->mapToSource(treeView->currentIndex()))){
+        QFile file(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())));
+        moveName = fileSystemModel->fileName(sort->mapToSource(treeView->currentIndex()));
+        movePath = fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()));
+        cutFlag = 1;
+        isDir = 0;
+    }
+    else{
+        cutFlag = 1;
+        isDir = 1;
+        movePath = fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()));
+        moveName = fileSystemModel->fileName(sort->mapToSource(treeView->currentIndex()));
+        QDirIterator iterator("/" + moveName, QDirIterator::Subdirectories);
+        while(iterator.hasNext()){
+            innerFolders << iterator.next();
+        }
+    }
+    oldFile = sort->mapToSource(treeView->currentIndex());
 }
 
 void Widget::on_copyAction_clicked(){
-    QFile file(fileSystemModel->filePath(treeView->currentIndex()));
-    moveName = fileSystemModel->fileName(treeView->currentIndex());
-    movePath = fileSystemModel->filePath(treeView->currentIndex());
-    cutFlag = 0;
-    oldFile = treeView->currentIndex();
+    if(!fileSystemModel->isDir(sort->mapToSource(treeView->currentIndex()))){
+        QFile file(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())));
+        moveName = fileSystemModel->fileName(sort->mapToSource(treeView->currentIndex()));
+        movePath = fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()));
+        cutFlag = 0;
+        isDir = 0;
+    }
+    else{
+        cutFlag = 0;
+        isDir = 1;
+        movePath = fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()));
+        moveName = fileSystemModel->fileName(sort->mapToSource(treeView->currentIndex()));
+        QDirIterator iterator(movePath, QDirIterator::Subdirectories);
+        while(iterator.hasNext()){
+            innerFolders << iterator.next();
+        }
+    }
+    oldFile = sort->mapToSource(treeView->currentIndex());
 }
 
 void Widget::retranslation(){
     settingsMenu->setTitle(tr("Настройки"));
-//    fileMenu->setTitle(tr("Файл"));
-//    editMenu->setTitle(tr("Правка"));
-//    viewMenu->setTitle(tr("Вид"));
-//    helpMenu->setTitle(tr("Справка"));
-
+    fileMenu->setTitle(tr("Файл"));
+    editMenu->setTitle(tr("Правка"));
+    //viewMenu->setTitle(tr("Вид"));
+    helpMenu->setTitle(tr("Справка"));
+    openAction->setText(tr("Открыть"));
+    propertiesAction->setText(tr("Свойства"));
+    folderAction->setText(tr("Папка"));
+    exitAction->setText(tr("Выход"));
+    renameAction->setText(tr("Переименовать"));
+    cutAction->setText(tr("Вырезать"));
+    copyAction->setText(tr("Копировать"));
+    pasteAction->setText(tr("Вставить"));
+    deleteAction->setText(tr("Удалить"));
+    translateMenu->setTitle(tr("Язык"));
+    colorMenu->setTitle(tr("Тема"));
+    aboutAction->setText(tr("О программе"));
 }
 
 void Widget::on_belarussianAction_clicked(){
-   QTranslator translator;
-   translator.load("main_by", ".");
-   qApp->installTranslator(&translator);
+  // QTranslator translator;
+   translator->load("main_by", ".");
+   qApp->installTranslator(translator);
    retranslation();
 }
 
 void Widget::on_russianAction_clicked(){
-    QTranslator translator;
-    translator.load("main_ru", ".");
-    qApp->installTranslator(&translator);
+    QTranslator translator1;
+    translator->load("main_ru", ".");
+    qApp->installTranslator(translator);
+    translator1.load("qt_fa", ".");
+    qApp->installTranslator(&translator1);
     retranslation();
 }
 
@@ -290,15 +359,16 @@ void Widget::on_germanAction_clicked(){
 void Widget::on_propertiesAction_clicked(){
 
     QMessageBox* propertiesMessage = new QMessageBox(this);
-    QFileInfo* fileInfo = new QFileInfo(fileSystemModel->fileInfo(treeView->currentIndex()));
+    QFileInfo* fileInfo = new QFileInfo(fileSystemModel->fileInfo(sort->mapToSource(treeView->currentIndex())));
     propertiesMessage->setModal(true);
     QPixmap info_ico(":/rsc/info_ico.ico");
     propertiesMessage->setIconPixmap(info_ico);
-    if(fileSystemModel->isDir(treeView->currentIndex())){
+
+    if(fileSystemModel->isDir(sort->mapToSource(treeView->currentIndex()))){
          propertiesMessage->setText("Имя: " + fileInfo->fileName() + "\nПуть: " + fileInfo->filePath() + "\nРазмер: -" + "\nДата создания: " + fileInfo->lastRead().toString());
     }
     else{
-        propertiesMessage->setText("Имя: " + fileInfo->fileName() + "\nПуть: " + fileInfo->filePath() + "\nРазмер: " + QString::number(fileInfo->size()) + "\nДата создания: " + fileInfo->lastRead().toString());
+        propertiesMessage->setText("Имя: " + fileInfo->fileName() + "\nПуть: " + fileInfo->filePath() + "\nРазмер: " + QString::number(fileInfo->size()) + " байт\nДата создания: " + fileInfo->lastRead().toString());
     }
 
     propertiesMessage->setWindowTitle(tr("Свойства"));
@@ -371,7 +441,7 @@ void Widget::on_deleteAction_clicked()
     deleteMessage->addButton(tr("Нет"), QMessageBox::ActionRole);
     deleteMessage->exec();
     if(deleteMessage->clickedButton() == acceptButton){
-        fileSystemModel->remove(treeView->currentIndex());
+        fileSystemModel->remove(sort->mapToSource(treeView->currentIndex()));
     }
     delete deleteMessage;
 }
@@ -424,6 +494,7 @@ void Widget::on_lightColorAction_clicked(){
 
 Widget::~Widget()
 {
+    delete translator;
     delete menuBar;
     delete gridLayout;
 
