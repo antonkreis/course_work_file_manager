@@ -21,6 +21,9 @@
 #include <QLibraryInfo>
 #include <QStringList>
 #include <QString>
+#include <sys/stat.h>
+#include <time.h>
+#include <QThread>
 
 #include <QModelIndex>
 

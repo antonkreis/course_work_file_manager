@@ -29,8 +29,6 @@ Widget::Widget(QWidget *parent)
 
     //treeView->setModel(fileSystemModel);
     treeView->setModel(sort);
-
-    //fileSystemModel->setHeaderData(0, Qt::Horizontal, tr("Название"));
     contextMenu = new QMenu(this);
 
     fileMenu = new QMenu(tr("Файл"));
@@ -39,11 +37,6 @@ Widget::Widget(QWidget *parent)
     settingsMenu = new QMenu(tr("Настройки"));
     settingsMenu = new QMenu();
     helpMenu = new QMenu(tr("Справка"));
-
-    //fileMenu->addAction(openAction);
-
-
-
     menuBar = new QMenuBar(this);
 
 
@@ -363,19 +356,36 @@ void Widget::on_propertiesAction_clicked(){
     propertiesMessage->setModal(true);
     QPixmap info_ico(":/rsc/info_ico.ico");
     propertiesMessage->setIconPixmap(info_ico);
-
-    if(fileSystemModel->isDir(sort->mapToSource(treeView->currentIndex()))){
-         propertiesMessage->setText("Имя: " + fileInfo->fileName() + "\nПуть: " + fileInfo->filePath() + "\nРазмер: -" + "\nДата создания: " + fileInfo->lastRead().toString());
+    struct stat info;
+    stat(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())).toStdString().c_str(), &info);
+    QString fileType, fileSize = QString::number(info.st_size);
+    switch (info.st_mode & S_IFMT) {
+        case S_IFSOCK: fileType = "Сокет"; break;
+        case S_IFLNK: fileType = "Символическая ссылка"; break;
+        case S_IFREG: fileType = "Обычный файл"; break;
+        case S_IFBLK: fileType = "Блочное устройство"; break;
+        case S_IFDIR: fileType = "Директория"; fileSize = "-"; break;
+        case S_IFCHR: fileType = "Символьное устройство"; break;
+        case S_IFIFO: fileType = "Канал"; break;
     }
-    else{
-        propertiesMessage->setText("Имя: " + fileInfo->fileName() + "\nПуть: " + fileInfo->filePath() + "\nРазмер: " + QString::number(fileInfo->size()) + " байт\nДата создания: " + fileInfo->lastRead().toString());
-    }
-
+//    if(fileSystemModel->isDir(sort->mapToSource(treeView->currentIndex()))){
+//         propertiesMessage->setText("Имя: " + fileInfo->fileName() + "\nПуть: " + fileInfo->filePath() + "\nРазмер: -" + "\nДата создания: " + fileInfo->lastRead().toString());
+//    }
+//    else{
+//        propertiesMessage->setText("Имя: " + fileInfo->fileName() + "\nПуть: " + fileInfo->filePath() + "\nРазмер: " + QString::number(fileInfo->size()) + " байт\nДата создания: " + fileInfo->lastRead().toString());
+//    }
+    propertiesMessage->setText("Имя: " + fileInfo->fileName()+ "\nТип: " + fileType + "\nРазмер: " + fileSize + " байт\nID владельца: " +
+                               QString::number(info.st_uid) + "\nID группы владельца: " + QString::number(info.st_gid) +
+                               "\nКоличество занятых дисковых блоков: " + QString::number(info.st_blocks) +
+                                QString::number(info.st_blksize) + "\nДата изменения: " + QString(asctime(localtime(&info.st_ctim.tv_sec))));
     propertiesMessage->setWindowTitle(tr("Свойства"));
     propertiesMessage->addButton(tr("Ок"), QMessageBox::ActionRole);
     propertiesMessage->exec();
     delete fileInfo;
     delete propertiesMessage;
+
+
+
 }
 
 void Widget::contextMenu_called(QPoint point){
