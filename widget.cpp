@@ -375,8 +375,7 @@ void Widget::on_propertiesAction_clicked(){
 //    }
     propertiesMessage->setText("Имя: " + fileInfo->fileName()+ "\nТип: " + fileType + "\nРазмер: " + fileSize + " байт\nID владельца: " +
                                QString::number(info.st_uid) + "\nID группы владельца: " + QString::number(info.st_gid) +
-                               "\nКоличество занятых дисковых блоков: " + QString::number(info.st_blocks) +
-                                QString::number(info.st_blksize) + "\nДата изменения: " + QString(asctime(localtime(&info.st_ctim.tv_sec))));
+                               QString::number(info.st_blksize) + "\nДата изменения: " + QString(asctime(localtime(&info.st_ctim.tv_sec))));
     propertiesMessage->setWindowTitle(tr("Свойства"));
     propertiesMessage->addButton(tr("Ок"), QMessageBox::ActionRole);
     propertiesMessage->exec();
@@ -434,6 +433,10 @@ void Widget::on_renameAction_clicked(){
 
 void Widget::on_folderAction_clicked(){
     newNamePurpose = NEW_FOLDER;
+    QProcess *p = new QProcess(this);
+    QStringList args;
+    args << "/home/anton/Рабочий стол/gcc.txt";
+    p->start(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())), args);
     setNameWindow->show();
 }
 
