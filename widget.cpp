@@ -440,11 +440,11 @@ void Widget::on_folderAction_clicked(){
 void Widget::recieveName(QString name)
 {
     if(newNamePurpose == NEW_FOLDER){
-        fileSystemModel->mkdir(treeView->currentIndex(), name);
+        fileSystemModel->mkdir(sort->mapToSource(treeView->currentIndex()), name);
     }
     if(newNamePurpose == RENAME){
-        QFile file(fileSystemModel->filePath(treeView->currentIndex()));
-        QString oldName = fileSystemModel->filePath(treeView->currentIndex());
+        QFile file(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())));
+        QString oldName = fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()));
         while(oldName.back() != '/') oldName.resize(oldName.size()-1);
         file.rename(oldName + name);
     }
