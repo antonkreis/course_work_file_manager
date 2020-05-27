@@ -23,7 +23,8 @@
 #include <QString>
 #include <sys/stat.h>
 #include <time.h>
-#include <QThread>
+#include <unistd.h>
+#include <QProcess>
 
 #include <QModelIndex>
 
@@ -61,6 +62,7 @@ class Widget : public QWidget
     QAction* propertiesAction;
     QMenu* createMenu;
 
+    QProcess* process;
     QMenu* translateMenu;
     QAction* belarussianAction;
     QAction* russianAction;

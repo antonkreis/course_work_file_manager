@@ -205,11 +205,13 @@ Widget::Widget(QWidget *parent)
     connect(pasteAction, SIGNAL(triggered()), SLOT(on_pasteAction_clicked()));
     //connect(sortAction, SIGNAL(triggered()), SLOT(on_sortAction_clicked(int)));
     //connect(treeView->header(), SIGNAL(sectionClicked(int)), this, SLOT(on_sortAction_clicked(int)));
-
+    translator->load("main_ru", ".");
+    qApp->installTranslator(translator);
     setNameWindow = new SetNameWindow(this);
     retranslation();
     cutFlag = 0;
     treeView->setSortingEnabled(true);
+    process = new QProcess(this);
 }
 
 void Widget::on_sortAction_clicked(int){
@@ -320,32 +322,29 @@ void Widget::retranslation(){
 }
 
 void Widget::on_belarussianAction_clicked(){
-  // QTranslator translator;
    translator->load("main_by", ".");
    qApp->installTranslator(translator);
    retranslation();
 }
 
 void Widget::on_russianAction_clicked(){
-    QTranslator translator1;
+    //QTranslator translator1;
     translator->load("main_ru", ".");
     qApp->installTranslator(translator);
-    translator1.load("qt_fa", ".");
-    qApp->installTranslator(&translator1);
+   // translator1.load("qt_fa", ".");
+   // qApp->installTranslator(&translator1);
     retranslation();
 }
 
 void Widget::on_englishAction_clicked(){
-    QTranslator translator;
-    translator.load("main_en", ".");
-    qApp->installTranslator(&translator);
+    translator->load("main_en", ".");
+    qApp->installTranslator(translator);
     retranslation();
 }
 
 void Widget::on_germanAction_clicked(){
-    QTranslator translator;
-    translator.load("main_de", ".");
-    qApp->installTranslator(&translator);
+    translator->load("main_de", ".");
+    qApp->installTranslator(translator);
     retranslation();
 }
 
@@ -402,15 +401,29 @@ void Widget::contextMenu_called(QPoint point){
 
 void Widget::on_openAction_clicked(QModelIndex index){
     if(!fileSystemModel->isDir(sort->mapToSource(index))){
-        QDesktopServices desktop;
-        desktop.openUrl(QUrl::fromLocalFile(fileSystemModel->filePath(sort->mapToSource(index))));
+        if(!access(fileSystemModel->filePath(sort->mapToSource(index)).toStdString().c_str(), X_OK)){
+            QStringList args;
+            args << "";
+            process->start(fileSystemModel->filePath(sort->mapToSource(index)), args);
+        }
+        else{
+            QDesktopServices desktop;
+            desktop.openUrl(QUrl::fromLocalFile(fileSystemModel->filePath(sort->mapToSource(index))));
+        }
     }
 }
 
 void Widget::on_openAction_clicked(){
-    if(!fileSystemModel->isDir(treeView->currentIndex())){
-        QDesktopServices desktop;
-        desktop.openUrl(QUrl::fromLocalFile(fileSystemModel->filePath(treeView->currentIndex())));
+    if(!fileSystemModel->isDir(sort->mapToSource(treeView->currentIndex()))){
+        if(!access(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())).toStdString().c_str(), X_OK)){
+            QStringList args;
+            args << "";
+            process->start(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())), args);
+        }
+        else{
+            QDesktopServices desktop;
+            desktop.openUrl(QUrl::fromLocalFile(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()))));
+        }
     }
 }
 
@@ -436,7 +449,6 @@ void Widget::recieveName(QString name)
         file.rename(oldName + name);
     }
     setNameWindow->close();
-
 }
 
 void Widget::on_deleteAction_clicked()
@@ -550,6 +562,7 @@ Widget::~Widget()
     delete englishAction;
     delete germanAction;
 
+    delete process;
     delete sort;
 }
 
