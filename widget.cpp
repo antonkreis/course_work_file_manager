@@ -375,7 +375,7 @@ void Widget::on_propertiesAction_clicked(){
 //    }
     propertiesMessage->setText("Имя: " + fileInfo->fileName()+ "\nТип: " + fileType + "\nРазмер: " + fileSize + " байт\nID владельца: " +
                                QString::number(info.st_uid) + "\nID группы владельца: " + QString::number(info.st_gid) +
-                               QString::number(info.st_blksize) + "\nДата изменения: " + QString(asctime(localtime(&info.st_ctim.tv_sec))));
+                               "\nДата изменения: " + QString(asctime(localtime(&info.st_mtim.tv_sec))));
     propertiesMessage->setWindowTitle(tr("Свойства"));
     propertiesMessage->addButton(tr("Ок"), QMessageBox::ActionRole);
     propertiesMessage->exec();
