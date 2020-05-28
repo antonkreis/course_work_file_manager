@@ -357,13 +357,13 @@ void Widget::on_propertiesAction_clicked(){
     propertiesMessage->setIconPixmap(info_ico);
     struct stat info;
     stat(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())).toStdString().c_str(), &info);
-    QString fileType, fileSize = QString::number(info.st_size);
+    QString fileType, fileSize = "-";
     switch (info.st_mode & S_IFMT) {
         case S_IFSOCK: fileType = "Сокет"; break;
-        case S_IFLNK: fileType = "Символическая ссылка"; break;
-        case S_IFREG: fileType = "Обычный файл"; break;
+        case S_IFLNK: fileType = "Символическая ссылка"; fileSize = QString::number(info.st_size); break;
+        case S_IFREG: fileType = "Обычный файл"; fileSize = QString::number(info.st_size); break;
         case S_IFBLK: fileType = "Блочное устройство"; break;
-        case S_IFDIR: fileType = "Директория"; fileSize = "-"; break;
+        case S_IFDIR: fileType = "Директория"; break;
         case S_IFCHR: fileType = "Символьное устройство"; break;
         case S_IFIFO: fileType = "Канал"; break;
     }
