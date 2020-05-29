@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <QProcess>
 
 #include <QModelIndex>
@@ -101,10 +102,15 @@ class Widget : public QWidget
     bool isDir;
     QStringList innerFolders;
 
+
+    QString newBasePath = "";
+
+
 public:
     Widget(QWidget *parent = nullptr);
     void retranslation();
-
+    void del(QString);
+    void del(QString, int);
     ~Widget();
 public slots:
    // void changeEvent(QEvent *event);

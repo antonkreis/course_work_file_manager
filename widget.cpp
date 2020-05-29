@@ -220,6 +220,22 @@ void Widget::on_sortAction_clicked(int){
 }
 
 void Widget::on_pasteAction_clicked(){
+    DIR* moveDir = opendir(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())).toStdString().c_str());
+    dirent* dirContent;
+    while((dirContent = readdir(moveDir)) != NULL){
+        if(QString(dirContent->d_name) == moveName){
+            QMessageBox* alreadyExistMessage = new QMessageBox(this);
+            alreadyExistMessage->setModal(true);
+            QPixmap info_ico(":/rsc/info_ico.ico");
+            alreadyExistMessage->setIconPixmap(info_ico);
+            alreadyExistMessage->setText("Файл/папка с таким названием уже существует.");
+            alreadyExistMessage->setWindowTitle(tr("Ошибка"));
+            alreadyExistMessage->addButton(tr("Ок"), QMessageBox::ActionRole);
+            alreadyExistMessage->exec();
+            delete alreadyExistMessage;
+            return;
+        }
+    }
     if(!isDir){
         if(moveName.size() != 0){
             QFile file(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())));
@@ -232,10 +248,11 @@ void Widget::on_pasteAction_clicked(){
         QString newBaseFolderPath = fileSystemModel->filePath(fileSystemModel->mkdir(sort->mapToSource(treeView->currentIndex()), moveName));
         QString relativePath;
         QString oldPath;
+        QString movePathLocal = movePath;
         for(int i =0; i < moveName.size(); i++){
-            movePath.resize(movePath.size() - 1);
+            movePathLocal.resize(movePathLocal.size() - 1);
         }
-        int pathLength = movePath.size();
+        int pathLength = movePathLocal.size();
         foreach (QString path, innerFolders) {
             if(path.back()!='.'){
 
@@ -273,6 +290,7 @@ void Widget::on_cutAction_clicked(){
         movePath = fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()));
         moveName = fileSystemModel->fileName(sort->mapToSource(treeView->currentIndex()));
         QDirIterator iterator("/" + moveName, QDirIterator::Subdirectories);
+        innerFolders.clear();
         while(iterator.hasNext()){
             innerFolders << iterator.next();
         }
@@ -294,6 +312,7 @@ void Widget::on_copyAction_clicked(){
         movePath = fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()));
         moveName = fileSystemModel->fileName(sort->mapToSource(treeView->currentIndex()));
         QDirIterator iterator(movePath, QDirIterator::Subdirectories);
+        innerFolders.clear();
         while(iterator.hasNext()){
             innerFolders << iterator.next();
         }
@@ -359,31 +378,22 @@ void Widget::on_propertiesAction_clicked(){
     stat(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())).toStdString().c_str(), &info);
     QString fileType, fileSize = "-";
     switch (info.st_mode & S_IFMT) {
-        case S_IFSOCK: fileType = "Сокет"; break;
-        case S_IFLNK: fileType = "Символическая ссылка"; fileSize = QString::number(info.st_size); break;
-        case S_IFREG: fileType = "Обычный файл"; fileSize = QString::number(info.st_size); break;
-        case S_IFBLK: fileType = "Блочное устройство"; break;
-        case S_IFDIR: fileType = "Директория"; break;
-        case S_IFCHR: fileType = "Символьное устройство"; break;
-        case S_IFIFO: fileType = "Канал"; break;
+    case S_IFSOCK: fileType = "Сокет"; break;
+    case S_IFLNK: fileType = "Символическая ссылка"; fileSize = QString::number(info.st_size); break;
+    case S_IFREG: fileType = "Обычный файл"; fileSize = QString::number(info.st_size); break;
+    case S_IFBLK: fileType = "Блочное устройство"; break;
+    case S_IFDIR: fileType = "Директория"; break;
+    case S_IFCHR: fileType = "Символьное устройство"; break;
+    case S_IFIFO: fileType = "Канал"; break;
     }
-//    if(fileSystemModel->isDir(sort->mapToSource(treeView->currentIndex()))){
-//         propertiesMessage->setText("Имя: " + fileInfo->fileName() + "\nПуть: " + fileInfo->filePath() + "\nРазмер: -" + "\nДата создания: " + fileInfo->lastRead().toString());
-//    }
-//    else{
-//        propertiesMessage->setText("Имя: " + fileInfo->fileName() + "\nПуть: " + fileInfo->filePath() + "\nРазмер: " + QString::number(fileInfo->size()) + " байт\nДата создания: " + fileInfo->lastRead().toString());
-//    }
     propertiesMessage->setText("Имя: " + fileInfo->fileName()+ "\nТип: " + fileType + "\nРазмер: " + fileSize + " байт\nID владельца: " +
-                               QString::number(info.st_uid) + "\nID группы владельца: " + QString::number(info.st_gid) +
-                               "\nДата изменения: " + QString(asctime(localtime(&info.st_mtim.tv_sec))));
+                           QString::number(info.st_uid) + "\nID группы владельца: " + QString::number(info.st_gid) +
+                           "\nДата изменения: " + QString(asctime(localtime(&info.st_mtim.tv_sec))));
     propertiesMessage->setWindowTitle(tr("Свойства"));
     propertiesMessage->addButton(tr("Ок"), QMessageBox::ActionRole);
     propertiesMessage->exec();
     delete fileInfo;
     delete propertiesMessage;
-
-
-
 }
 
 void Widget::contextMenu_called(QPoint point){
@@ -394,6 +404,7 @@ void Widget::contextMenu_called(QPoint point){
     contextMenu->addAction(pasteAction);
     contextMenu->addAction(folderAction);
     contextMenu->addAction(propertiesAction);
+    contextMenu->addAction(deleteAction);
     contextMenu->popup(treeView->viewport()->mapToGlobal(point));
 }
 
@@ -440,8 +451,7 @@ void Widget::on_folderAction_clicked(){
     setNameWindow->show();
 }
 
-void Widget::recieveName(QString name)
-{
+void Widget::recieveName(QString name){
     if(newNamePurpose == NEW_FOLDER){
         fileSystemModel->mkdir(sort->mapToSource(treeView->currentIndex()), name);
     }
@@ -454,8 +464,26 @@ void Widget::recieveName(QString name)
     setNameWindow->close();
 }
 
-void Widget::on_deleteAction_clicked()
-{
+//void Widget::on_deleteAction_clicked()
+//{
+//    QMessageBox* deleteMessage = new QMessageBox(this);
+//    deleteMessage->setModal(true);
+//    QPixmap info_ico(":/rsc/info_ico.ico");
+//    deleteMessage->setIconPixmap(info_ico);
+//    deleteMessage->setText("Вы уверены?");
+//    deleteMessage->setWindowTitle(tr("Удаление"));
+//    QPushButton* acceptButton = deleteMessage->addButton(tr("Да"), QMessageBox::ActionRole);
+//    deleteMessage->addButton(tr("Нет"), QMessageBox::ActionRole);
+//    deleteMessage->exec();
+//    if(deleteMessage->clickedButton() == acceptButton){
+//        fileSystemModel->remove(sort->mapToSource(treeView->currentIndex()));
+//    }
+//    delete deleteMessage;
+//}
+
+
+
+void Widget::on_deleteAction_clicked(){
     QMessageBox* deleteMessage = new QMessageBox(this);
     deleteMessage->setModal(true);
     QPixmap info_ico(":/rsc/info_ico.ico");
@@ -466,106 +494,191 @@ void Widget::on_deleteAction_clicked()
     deleteMessage->addButton(tr("Нет"), QMessageBox::ActionRole);
     deleteMessage->exec();
     if(deleteMessage->clickedButton() == acceptButton){
-        fileSystemModel->remove(sort->mapToSource(treeView->currentIndex()));
+         struct stat info;
+         stat(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())).toStdString().c_str(), &info);
+         if((info.st_mode & S_IFMT) != S_IFDIR){
+             unlink(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())).toStdString().c_str());
+         }
+         else{
+             DIR* deletedDir;
+             deletedDir = opendir(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())).toStdString().c_str());
+             if(deletedDir == NULL){
+                 QMessageBox* errorMessage = new QMessageBox(this);
+                 errorMessage->setModal(true);
+                 QPixmap info_ico(":/rsc/info_ico.ico");
+                 errorMessage->setIconPixmap(info_ico);
+                 errorMessage->setText("Невозможно удалить папку");
+                 errorMessage->setWindowTitle(tr("Ошибка"));
+                 errorMessage->addButton(tr("Ок"), QMessageBox::ActionRole);
+                 errorMessage->exec();
+             }
+             QString basePath = fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()));
+             QString relativePath = "";
+             //del(basePath);
+             QStringList basePathList;
+             basePathList << basePath;
+             do{
+                 del(basePathList.back(), 0);
+                 if(newBasePath != ""){
+                     basePathList << newBasePath;
+                 }
+                 else{
+                     basePathList.pop_back();
+                 }
+             }while(basePathList.size());
+         }
+
     }
     delete deleteMessage;
 }
 
+//void Widget::del(QString path){
+//    DIR* deletedDir;
+//    dirent* dirContent;
+//    //int amountOfChilds = 0;
+//    deletedDir = opendir(path.toStdString().c_str());
+//    while((dirContent = readdir(deletedDir)) != NULL){
+//        if(QString(dirContent->d_name) != "." && QString(dirContent->d_name) != ".."){
+//            //amountOfChilds++;
+//            if(dirContent->d_type == DT_DIR){
+//                //rmdir(QString(path+"/"+QString(dirContent->d_name)).toStdString().c_str());
+//                del(path + "/" + QString(dirContent->d_name));
+//            }
+//            else{
+//                //amountOfChilds--;
+//                unlink(QString(path+"/"+QString(dirContent->d_name)).toStdString().c_str());
+
+//            }
+//        }
+//    rmdir(path.toStdString().c_str());
+//    }
+//}
+
+
+void Widget::del(QString path, int depth){
+    newBasePath = "";
+    if(depth == 5){
+        newBasePath = path;
+        return;
+    }
+    DIR* deletedDir;
+    dirent* dirContent;
+    deletedDir = opendir(path.toStdString().c_str());
+    while((dirContent = readdir(deletedDir)) != NULL){
+        if(QString(dirContent->d_name) != "." && QString(dirContent->d_name) != ".."){
+            if(dirContent->d_type == DT_DIR){
+                del(path + "/" + QString(dirContent->d_name), depth+1);
+                if(newBasePath != ""){
+                    return;
+                }
+            }
+            else{
+                unlink(QString(path+"/"+QString(dirContent->d_name)).toStdString().c_str());
+
+            }
+        }
+        rmdir(path.toStdString().c_str());
+    }
+}
+
+
+
+
 void Widget::on_aboutAction_clicked(){
-    QMessageBox* aboutMessage = new QMessageBox(this);
-    aboutMessage->setModal(true);
-    QPixmap info_ico(":/rsc/info_ico.ico");
-    aboutMessage->setIconPixmap(info_ico);
-    aboutMessage->setText("Курсовой проект.\nСоздан Антоном Крейсом.\nBSUIR, 2020");
-    aboutMessage->setWindowTitle(tr("О программе"));
-    aboutMessage->addButton(tr("Закрыть"), QMessageBox::AcceptRole);
-    aboutMessage->exec();
-    delete aboutMessage;
+QMessageBox* aboutMessage = new QMessageBox(this);
+aboutMessage->setModal(true);
+QPixmap info_ico(":/rsc/info_ico.ico");
+aboutMessage->setIconPixmap(info_ico);
+aboutMessage->setText("Курсовой проект.\nСоздан Антоном Крейсом.\nBSUIR, 2020");
+aboutMessage->setWindowTitle(tr("О программе"));
+aboutMessage->addButton(tr("Закрыть"), QMessageBox::AcceptRole);
+aboutMessage->exec();
+delete aboutMessage;
 }
 
 void Widget::on_exitAction_clicked(){
-    close();
+close();
 }
 
 void Widget::on_greyColorAction_clicked(){
-    QColor fontColor(0,0,100);
-    QPalette menuPalette;
-    menuBar->setStyleSheet("color: rgb(255, 255, 255)");
-    QColor backgroudColor(55, 55, 55);
-    QPalette palette;
-    palette.setColor(this->backgroundRole(), backgroudColor);
-    //setStyleSheet("color: rgb(80, 0, 52)");
-    setPalette(palette);
-    menuPalette.setColor(QPalette::Background, fontColor);
-    menuBar->setPalette(menuPalette);
-    treeView->setStyleSheet("QTreeView{ background: grey; color: white; } QTreeView::branch:closed:has-children { image: url(:/rsc/white_branch_close.ico); "
-                            " } QTreeView::branch:open:has-children { image: url(:/rsc/white_branch_open.ico); }");
+QColor fontColor(0,0,100);
+QPalette menuPalette;
+menuBar->setStyleSheet("color: rgb(255, 255, 255)");
+QColor backgroudColor(55, 55, 55);
+QPalette palette;
+palette.setColor(this->backgroundRole(), backgroudColor);
+//setStyleSheet("color: rgb(80, 0, 52)");
+setPalette(palette);
+menuPalette.setColor(QPalette::Background, fontColor);
+menuBar->setPalette(menuPalette);
+treeView->setStyleSheet("QTreeView{ background: grey; color: white; } QTreeView::branch:closed:has-children { image: url(:/rsc/white_branch_close.ico); "
+                        " } QTreeView::branch:open:has-children { image: url(:/rsc/white_branch_open.ico); }");
 }
 
 void Widget::on_lightColorAction_clicked(){
-    QColor fontColor(255,200,0);
-    QPalette menuPalette;
+QColor fontColor(255,200,0);
+QPalette menuPalette;
 
-    menuBar->setStyleSheet("color: rgb(0, 0, 0)");
-    QColor backgroudColor(255, 255, 255);
-    QPalette palette;
-    palette.setColor(this->backgroundRole(), backgroudColor);
-    setPalette(palette);
-    menuPalette.setColor(QPalette::Background, fontColor);
-    menuBar->setPalette(menuPalette);
-    treeView->setStyleSheet("QTreeView{ background: white; text: black; } QTreeView::branch:closed:has-children { image: url(:/rsc/black_branch_close.ico); "
-                            " } QTreeView::branch:open:has-children { image: url(:/rsc/black_branch_open.ico); }");
+menuBar->setStyleSheet("color: rgb(0, 0, 0)");
+QColor backgroudColor(255, 255, 255);
+QPalette palette;
+palette.setColor(this->backgroundRole(), backgroudColor);
+setPalette(palette);
+menuPalette.setColor(QPalette::Background, fontColor);
+menuBar->setPalette(menuPalette);
+treeView->setStyleSheet("QTreeView{ background: white; text: black; } QTreeView::branch:closed:has-children { image: url(:/rsc/black_branch_close.ico); "
+                        " } QTreeView::branch:open:has-children { image: url(:/rsc/black_branch_open.ico); }");
 }
 
 Widget::~Widget()
 {
-    delete translator;
-    delete menuBar;
-    delete gridLayout;
+delete translator;
+delete menuBar;
+delete gridLayout;
 
-    delete contextMenu;
+delete contextMenu;
 
-    delete fileMenu;
-    delete editMenu;
+delete fileMenu;
+delete editMenu;
 
-    delete viewMenu;
-    delete settingsMenu;
-    delete helpMenu;
-    delete openAction;
-    delete propertiesAction;
+delete viewMenu;
+delete settingsMenu;
+delete helpMenu;
+delete openAction;
+delete propertiesAction;
 
-    delete createMenu;
-    delete undoAction;
-    delete copyAction;
-    delete pasteAction;
-    delete cutAction;
+delete createMenu;
+delete undoAction;
+delete copyAction;
+delete pasteAction;
+delete cutAction;
 
-    delete renameAction;
-    delete deleteAction;
-    delete colorMenu;
-    delete aboutAction;
-    delete sortAction;
+delete renameAction;
+delete deleteAction;
+delete colorMenu;
+delete aboutAction;
+delete sortAction;
 
-    delete exitAction;
-    delete helpAction;
-    delete folderAction;
-    delete docAction;
-    delete labelAction;
-    delete greyColorAction;
-    delete lightColorAction;
+delete exitAction;
+delete helpAction;
+delete folderAction;
+delete docAction;
+delete labelAction;
+delete greyColorAction;
+delete lightColorAction;
 
-    delete setNameWindow;
+delete setNameWindow;
 
-    delete fileSystemModel;
-    delete treeView;
+delete fileSystemModel;
+delete treeView;
 
-    delete translateMenu;
-    delete belarussianAction;
-    delete russianAction;
-    delete englishAction;
-    delete germanAction;
+delete translateMenu;
+delete belarussianAction;
+delete russianAction;
+delete englishAction;
+delete germanAction;
 
-    delete process;
-    delete sort;
+delete process;
+delete sort;
 }
 
