@@ -238,11 +238,48 @@ void Widget::on_pasteAction_clicked(){
     }
     if(!isDir){
         if(moveName.size() != 0){
+            struct stat info;
+            stat(movePath.toStdString().c_str(), &info);
+            if((info.st_mode & S_IFMT) != S_IFREG && (info.st_mode & S_IFMT) != S_IFLNK){
+                QMessageBox* errorMessage = new QMessageBox(this);
+                errorMessage->setModal(true);
+                QPixmap info_ico(":/rsc/info_ico.ico");
+                errorMessage->setIconPixmap(info_ico);
+                errorMessage->setText("Невозможно скопировать/переместить объект.");
+                errorMessage->setWindowTitle(tr("Ошибка"));
+                errorMessage->addButton(tr("Ок"), QMessageBox::ActionRole);
+                errorMessage->exec();
+                delete errorMessage;
+                return;
+            }
             QFile file(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex())));
             QFile::copy(movePath, fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()))+ '/' + moveName);
         }
     }
     else{
+        QStringList basePathList;
+        basePathList << movePath;
+        do{
+            if(!checkFile(basePathList.back(), 0)){
+                QMessageBox* errorMessage = new QMessageBox(this);
+                errorMessage->setModal(true);
+                QPixmap info_ico(":/rsc/info_ico.ico");
+                errorMessage->setIconPixmap(info_ico);
+                errorMessage->setText("Невозможно скопировать/переместить объект.");
+                errorMessage->setWindowTitle(tr("Ошибка"));
+                errorMessage->addButton(tr("Ок"), QMessageBox::ActionRole);
+                errorMessage->exec();
+                delete errorMessage;
+                return;
+            }
+            if(newBasePath != ""){
+                basePathList << newBasePath;
+            }
+            else{
+                basePathList.pop_back();
+            }
+        }while(basePathList.size());
+
         QDir dir(fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()))+ moveName);
         //QFileInfo info;
         QString newBaseFolderPath = fileSystemModel->filePath(fileSystemModel->mkdir(sort->mapToSource(treeView->currentIndex()), moveName));
@@ -275,6 +312,39 @@ void Widget::on_pasteAction_clicked(){
     //moveName.clear();
     //movePath.clear();
 }
+
+
+bool Widget::checkFile(QString path, int depth){
+    newBasePath = "";
+    if(depth == 5){
+        newBasePath = path;
+        return 1;
+    }
+    DIR* deletedDir;
+    dirent* dirContent;
+    struct stat info;
+    deletedDir = opendir(path.toStdString().c_str());
+    while((dirContent = readdir(deletedDir)) != NULL){
+        if(QString(dirContent->d_name) != "." && QString(dirContent->d_name) != ".."){
+            stat(QString(path + "/" + dirContent->d_name).toStdString().c_str(), &info);
+            if((info.st_mode & S_IFMT) == S_IFDIR){
+                if(!checkFile(path + "/" + QString(dirContent->d_name), depth+1)){
+                    return 0;
+                }
+                if(newBasePath != ""){
+                    return 1;
+                }
+            }
+            else{
+                if((info.st_mode & S_IFMT) != S_IFREG && (info.st_mode & S_IFMT) != S_IFLNK){
+                    return 0;
+                }
+            }
+        }
+    }
+    return 1;
+}
+
 
 void Widget::on_cutAction_clicked(){
     if(!fileSystemModel->isDir(sort->mapToSource(treeView->currentIndex()))){
@@ -511,6 +581,7 @@ void Widget::on_deleteAction_clicked(){
                  errorMessage->setWindowTitle(tr("Ошибка"));
                  errorMessage->addButton(tr("Ок"), QMessageBox::ActionRole);
                  errorMessage->exec();
+                 delete errorMessage;
              }
              QString basePath = fileSystemModel->filePath(sort->mapToSource(treeView->currentIndex()));
              QString relativePath = "";

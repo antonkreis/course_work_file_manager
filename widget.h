@@ -109,8 +109,8 @@ class Widget : public QWidget
 public:
     Widget(QWidget *parent = nullptr);
     void retranslation();
-    void del(QString);
     void del(QString, int);
+    bool checkFile(QString, int);
     ~Widget();
 public slots:
    // void changeEvent(QEvent *event);
