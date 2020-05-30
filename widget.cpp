@@ -532,25 +532,31 @@ void Widget::on_deleteAction_clicked(){
     delete deleteMessage;
 }
 
-//void Widget::del(QString path){
+
+
+//void Widget::del(QString path, int depth){
+//    newBasePath = "";
+//    if(depth == 5){
+//        newBasePath = path;
+//        return;
+//    }
 //    DIR* deletedDir;
 //    dirent* dirContent;
-//    //int amountOfChilds = 0;
 //    deletedDir = opendir(path.toStdString().c_str());
 //    while((dirContent = readdir(deletedDir)) != NULL){
 //        if(QString(dirContent->d_name) != "." && QString(dirContent->d_name) != ".."){
-//            //amountOfChilds++;
 //            if(dirContent->d_type == DT_DIR){
-//                //rmdir(QString(path+"/"+QString(dirContent->d_name)).toStdString().c_str());
-//                del(path + "/" + QString(dirContent->d_name));
+//                del(path + "/" + QString(dirContent->d_name), depth+1);
+//                if(newBasePath != ""){
+//                    return;
+//                }
 //            }
 //            else{
-//                //amountOfChilds--;
 //                unlink(QString(path+"/"+QString(dirContent->d_name)).toStdString().c_str());
 
 //            }
 //        }
-//    rmdir(path.toStdString().c_str());
+//        rmdir(path.toStdString().c_str());
 //    }
 //}
 
@@ -563,10 +569,12 @@ void Widget::del(QString path, int depth){
     }
     DIR* deletedDir;
     dirent* dirContent;
+    struct stat info;
     deletedDir = opendir(path.toStdString().c_str());
     while((dirContent = readdir(deletedDir)) != NULL){
         if(QString(dirContent->d_name) != "." && QString(dirContent->d_name) != ".."){
-            if(dirContent->d_type == DT_DIR){
+            stat(QString(path + "/" + dirContent->d_name).toStdString().c_str(), &info);
+            if((info.st_mode & S_IFMT) == S_IFDIR){
                 del(path + "/" + QString(dirContent->d_name), depth+1);
                 if(newBasePath != ""){
                     return;
@@ -582,18 +590,16 @@ void Widget::del(QString path, int depth){
 }
 
 
-
-
 void Widget::on_aboutAction_clicked(){
-QMessageBox* aboutMessage = new QMessageBox(this);
-aboutMessage->setModal(true);
-QPixmap info_ico(":/rsc/info_ico.ico");
-aboutMessage->setIconPixmap(info_ico);
-aboutMessage->setText("Курсовой проект.\nСоздан Антоном Крейсом.\nBSUIR, 2020");
-aboutMessage->setWindowTitle(tr("О программе"));
-aboutMessage->addButton(tr("Закрыть"), QMessageBox::AcceptRole);
-aboutMessage->exec();
-delete aboutMessage;
+    QMessageBox* aboutMessage = new QMessageBox(this);
+    aboutMessage->setModal(true);
+    QPixmap info_ico(":/rsc/info_ico.ico");
+    aboutMessage->setIconPixmap(info_ico);
+    aboutMessage->setText("Курсовой проект.\nСоздан Антоном Крейсом.\nBSUIR, 2020");
+    aboutMessage->setWindowTitle(tr("О программе"));
+    aboutMessage->addButton(tr("Закрыть"), QMessageBox::AcceptRole);
+    aboutMessage->exec();
+    delete aboutMessage;
 }
 
 void Widget::on_exitAction_clicked(){
@@ -601,84 +607,83 @@ close();
 }
 
 void Widget::on_greyColorAction_clicked(){
-QColor fontColor(0,0,100);
-QPalette menuPalette;
-menuBar->setStyleSheet("color: rgb(255, 255, 255)");
-QColor backgroudColor(55, 55, 55);
-QPalette palette;
-palette.setColor(this->backgroundRole(), backgroudColor);
-//setStyleSheet("color: rgb(80, 0, 52)");
-setPalette(palette);
-menuPalette.setColor(QPalette::Background, fontColor);
-menuBar->setPalette(menuPalette);
-treeView->setStyleSheet("QTreeView{ background: grey; color: white; } QTreeView::branch:closed:has-children { image: url(:/rsc/white_branch_close.ico); "
-                        " } QTreeView::branch:open:has-children { image: url(:/rsc/white_branch_open.ico); }");
+    QColor fontColor(0,0,100);
+    QPalette menuPalette;
+    menuBar->setStyleSheet("color: rgb(255, 255, 255)");
+    QColor backgroudColor(55, 55, 55);
+    QPalette palette;
+    palette.setColor(this->backgroundRole(), backgroudColor);
+    //setStyleSheet("color: rgb(80, 0, 52)");
+    setPalette(palette);
+    menuPalette.setColor(QPalette::Background, fontColor);
+    menuBar->setPalette(menuPalette);
+    treeView->setStyleSheet("QTreeView{ background: grey; color: white; } QTreeView::branch:closed:has-children { image: url(:/rsc/white_branch_close.ico); "
+                            " } QTreeView::branch:open:has-children { image: url(:/rsc/white_branch_open.ico); }");
 }
 
 void Widget::on_lightColorAction_clicked(){
-QColor fontColor(255,200,0);
-QPalette menuPalette;
+    QColor fontColor(255,200,0);
+    QPalette menuPalette;
 
-menuBar->setStyleSheet("color: rgb(0, 0, 0)");
-QColor backgroudColor(255, 255, 255);
-QPalette palette;
-palette.setColor(this->backgroundRole(), backgroudColor);
-setPalette(palette);
-menuPalette.setColor(QPalette::Background, fontColor);
-menuBar->setPalette(menuPalette);
-treeView->setStyleSheet("QTreeView{ background: white; text: black; } QTreeView::branch:closed:has-children { image: url(:/rsc/black_branch_close.ico); "
-                        " } QTreeView::branch:open:has-children { image: url(:/rsc/black_branch_open.ico); }");
+    menuBar->setStyleSheet("color: rgb(0, 0, 0)");
+    QColor backgroudColor(255, 255, 255);
+    QPalette palette;
+    palette.setColor(this->backgroundRole(), backgroudColor);
+    setPalette(palette);
+    menuPalette.setColor(QPalette::Background, fontColor);
+    menuBar->setPalette(menuPalette);
+    treeView->setStyleSheet("QTreeView{ background: white; text: black; } QTreeView::branch:closed:has-children { image: url(:/rsc/black_branch_close.ico); "
+                            " } QTreeView::branch:open:has-children { image: url(:/rsc/black_branch_open.ico); }");
 }
 
-Widget::~Widget()
-{
-delete translator;
-delete menuBar;
-delete gridLayout;
+Widget::~Widget(){
+    delete translator;
+    delete menuBar;
+    delete gridLayout;
 
-delete contextMenu;
+    delete contextMenu;
 
-delete fileMenu;
-delete editMenu;
+    delete fileMenu;
+    delete editMenu;
 
-delete viewMenu;
-delete settingsMenu;
-delete helpMenu;
-delete openAction;
-delete propertiesAction;
+    delete viewMenu;
+    delete settingsMenu;
+    delete helpMenu;
+    delete openAction;
+    delete propertiesAction;
 
-delete createMenu;
-delete undoAction;
-delete copyAction;
-delete pasteAction;
-delete cutAction;
+    delete createMenu;
+    delete undoAction;
+    delete copyAction;
+    delete pasteAction;
+    delete cutAction;
 
-delete renameAction;
-delete deleteAction;
-delete colorMenu;
-delete aboutAction;
-delete sortAction;
+    delete renameAction;
+    delete deleteAction;
+    delete colorMenu;
+    delete aboutAction;
+    delete sortAction;
 
-delete exitAction;
-delete helpAction;
-delete folderAction;
-delete docAction;
-delete labelAction;
-delete greyColorAction;
-delete lightColorAction;
+    delete exitAction;
+    delete helpAction;
+    delete folderAction;
+    delete docAction;
+    delete labelAction;
+    delete greyColorAction;
+    delete lightColorAction;
 
-delete setNameWindow;
+    delete setNameWindow;
 
-delete fileSystemModel;
-delete treeView;
+    delete fileSystemModel;
+    delete treeView;
 
-delete translateMenu;
-delete belarussianAction;
-delete russianAction;
-delete englishAction;
-delete germanAction;
+    delete translateMenu;
+    delete belarussianAction;
+    delete russianAction;
+    delete englishAction;
+    delete germanAction;
 
-delete process;
-delete sort;
+    delete process;
+    delete sort;
 }
 
